@@ -1,13 +1,22 @@
 import Phaser from "phaser";
+
+/**
+ * Plugins
+ */
+import OutlinePipelinePlugin from "phaser3-rex-plugins/plugins/outlinepipeline-plugin.js";
+import BoardPlugin from "phaser3-rex-plugins/plugins/board-plugin.js";
+
+/**
+ * Scenes
+ */
 import BootScene from "./scenes/BootScene";
 import PlayScene from "./scenes/PlayScene";
-import Text from "./scenes/Text";
 
 function launch(containerId: string) {
   const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,
-    width: 512,
-    height: 512,
+    width: 320,
+    height: 320,
     parent: containerId,
     zoom: 2,
     render: {
@@ -17,7 +26,24 @@ function launch(containerId: string) {
     physics: {
       default: "arcade"
     },
-    scene: [BootScene, PlayScene, Text]
+    plugins: {
+      global: [
+        {
+          key: "rexOutlinePipeline",
+          plugin: OutlinePipelinePlugin,
+          start: true
+        }
+        // ...
+      ],
+      scene: [
+        {
+          key: "rexBoard",
+          plugin: BoardPlugin,
+          mapping: "rexBoard"
+        }
+      ]
+    },
+    scene: [BootScene, PlayScene]
   };
 
   return new Phaser.Game(config);

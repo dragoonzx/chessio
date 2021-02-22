@@ -1,12 +1,13 @@
 import { Scene } from "phaser";
 import { PlayerCharacter } from "@/game/units/Unit";
-import { OutlinePipeline } from "@/game/pipelines/OutlinePipeline";
-import { resolveTransitionHooks } from "vue";
+import { createBoard } from "@/game/board";
 
 export default class PlayScene extends Scene {
   warrior: PlayerCharacter | null;
   sprite: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody | undefined;
   moveCoords: { x: any; y: any } | undefined;
+  rexBoard: any;
+  activeChar: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody | undefined;
   constructor() {
     super({ key: "PlayScene" });
 
@@ -15,13 +16,22 @@ export default class PlayScene extends Scene {
 
   create() {
     // this.input.mouse.disableContextMenu();
+    const postFxPlugin = this.plugins.get("rexOutlinePipeline");
 
     this.cameras.main.backgroundColor = Phaser.Display.Color.HexStringToColor(
       "#000"
     );
 
-    const sprite = this.physics.add.sprite(300, 100, "alchemist");
+    const sprite = this.physics.add.sprite(150, 200, "alchemist");
+    sprite.setInteractive({ useHandCursor: true });
+    sprite.setDepth(1);
     this.sprite = sprite;
+
+    const enemy = this.physics.add.sprite(150, 20, "alchemist");
+    enemy.setInteractive({ useHandCursor: true });
+    enemy.setDepth(1);
+
+    const board = createBoard(this);
 
     this.anims.create({
       key: "idle",
@@ -42,25 +52,8 @@ export default class PlayScene extends Scene {
       repeat: -1
     });
 
-    // sprite.setPipeline(OutlinePipeline.KEY);
-    // sprite.pipeline.set2f(
-    //   "uTextureSize",
-    //   sprite.texture.getSourceImage().width,
-    //   sprite.texture.getSourceImage().height
-    // );
     sprite.anims.play("idle");
-
-    sprite.setInteractive();
-
-    this.input.on(
-      "gameobjectdown",
-      (pointer: any, gameObject: any, event: any) => {
-        // Fixate on character & need to border it
-        // gameObject.fixate();
-        sprite.anims.play("idle");
-        event.stopPropagation();
-      }
-    );
+    enemy.anims.play("idle");
 
     this.input.on("pointerdown", (pointer: any) => {
       console.log(pointer);
@@ -68,26 +61,55 @@ export default class PlayScene extends Scene {
         x: pointer.x,
         y: pointer.y
       };
-      this.sprite?.setVelocity(4);
-      sprite.anims.play("walk");
-      console.log(this.physics.moveTo(sprite, pointer.x, pointer.y));
+      this.activeChar?.setVelocity(4);
+      this.activeChar?.anims.play("walk");
+      this.activeChar &&
+        this.physics.moveTo(this.activeChar, pointer.x, pointer.y);
       // while (sprite.x !== pointer.x && sprite.y !== pointer.y) {
       //   sprite.setX(pointer.x);
       //   sprite.setY(pointer.y);
       // }
     });
+
+    [this.sprite, enemy].forEach(v => {
+      v.on("pointerover", () => {
+        // Add postfx pipeline
+        // @ts-expect-error
+        postFxPlugin.add(v, {
+          thickness: 1,
+          outlineColor: 0xff8a50
+        });
+
+        // Cascade 2nd outline
+        // @ts-expect-error
+        postFxPlugin.add(v, {
+          thickness: 2,
+          outlineColor: 0xc41c00
+        });
+      }).on("pointerout", () => {
+        // Remove all outline post-fx pipelines
+        // @ts-expect-error
+        postFxPlugin.remove(v);
+      });
+
+      v.on("pointerdown", (p: PointerEvent) => {
+        this.activeChar?.setVelocity(0);
+        this.activeChar?.anims.play("idle");
+        this.activeChar = v;
+      });
+    });
   }
 
   update(time: any, delta: any) {
-    if (this.sprite) {
+    if (this.activeChar) {
       if (
-        this.sprite.x <= this.moveCoords?.x + 5 &&
-        this.sprite.x >= this.moveCoords?.x - 5 &&
-        this.sprite.y <= this.moveCoords?.y + 5 &&
-        this.sprite.y >= this.moveCoords?.y - 5
+        this.activeChar.x <= this.moveCoords?.x + 5 &&
+        this.activeChar.x >= this.moveCoords?.x - 5 &&
+        this.activeChar.y <= this.moveCoords?.y + 5 &&
+        this.activeChar.y >= this.moveCoords?.y - 5
       ) {
-        this.sprite.setVelocity(0);
-        this.sprite.anims.play("idle");
+        this.activeChar.setVelocity(0);
+        this.activeChar.anims.play("idle");
       }
     }
   }
