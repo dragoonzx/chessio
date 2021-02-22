@@ -22,5 +22,5 @@ module.exports = {
     open: true,
     hot: false
   },
-  publicPath: "/chessio"
+  publicPath: "/chessio/"
 };
