@@ -21,5 +21,6 @@ module.exports = {
   devServer: {
     open: true,
     hot: false
-  }
+  },
+  publicPath: "/chessio/"
 };
